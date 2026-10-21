@@ -72,8 +72,19 @@ function sendJSON(res, code, obj) {
   res.end(JSON.stringify(obj));
 }
 function sendFile(res, file) {
-  fs.readFile(path.join(__dirname, 'public', file), (err, buf) => {
-    if (err) { res.writeHead(500); return res.end('Error'); }
+  const candidates = [
+    path.join(__dirname, 'public', file),
+    path.join(__dirname, file),
+    path.join(process.cwd(), 'public', file),
+    path.join(process.cwd(), file),
+  ];
+  const hit = candidates.find((p) => fs.existsSync(p));
+  if (!hit) {
+    res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+    return res.end('Error: ' + file + ' is missing from your upload. Put it in a folder named "public" next to server.js.');
+  }
+  fs.readFile(hit, (err, buf) => {
+    if (err) { res.writeHead(500); return res.end('Error reading ' + file); }
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
     res.end(buf);
   });
